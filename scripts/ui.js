@@ -1,5 +1,4 @@
 var UI = function(){
-    var _borderSize = 15;
     var _canvas = null;
     var _ctx = null;
 
@@ -26,7 +25,7 @@ var UI = function(){
         _gap = Math.floor(_defaultOptions.borderLength/(_defaultOptions.borderSize+1));
 
         var bounds = [];
-        for( var i = 0; i < _borderSize+2; i++ ){
+        for( var i = 0; i < _defaultOptions.borderSize+2; i++ ){
             bounds.push(_gap*i);
         }
 
@@ -55,12 +54,12 @@ var UI = function(){
 
                 putChess( chess.x, chess.y );
                 _usedCoords.push(chess);
+                _current = _chessSwitch[_current];
             }
             // 暴露给外部的点击处理接口
             if( typeof _defaultOptions.onClick == 'function'){
                 _defaultOptions.onClick( chess.x, chess.y, _current );
             }
-            _current = _chessSwitch[_current];
         }
         _canvas.onmousemove = function(){
             if( _gameEnded ){
@@ -151,6 +150,12 @@ var UI = function(){
             init( opts );
             boardInit();
         },
-        endGame:endGame
+        endGame:endGame,
+        usedCoords:_usedCoords,
+        putChess:function( x, y ){
+            putChess( x, y );
+            _usedCoords.push({x:x, y:y});
+            _current = _chessSwitch[_current];
+        }
     }
 }();

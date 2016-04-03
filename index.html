@@ -18,12 +18,18 @@
                     borderLength:_boardWidth,
                     borderSize:_borderSize,
                     onClick:function(x,y,user){
-                        if( user == 0 ){
-                            Logic.addMeWinChance(x,y);
-                        }else{
-                            Logic.addAIWinChance(x,y);
-                        }
+                        Logic.addMeWinChance(x,y);
                         var hasWin = Logic.checkWin();
+                        if( null != hasWin ){
+                            alert(hasWin+" Win!");
+                            UI.endGame();
+                            return;
+                        }
+
+                        var coord = Logic.aiChess(UI.usedCoords);
+                        UI.putChess( coord.x, coord.y );
+                        Logic.addAIWinChance(coord.x, coord.y);
+                        hasWin = Logic.checkWin();
                         if( null != hasWin ){
                             alert(hasWin+" Win!");
                             UI.endGame();

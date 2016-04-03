@@ -125,13 +125,78 @@ var Logic = function(){
         });
     }
 
+    /**
+     * AI部分
+     * 1、防守：检查对手的赢率，如果对手的最大赢率高于自己，则进行阻断
+     * 2、进攻：增加自己的赢率
+     * 所以AI只做两件事情：获取对手的最大赢率和相应的赢法序号数组
+     *                  获取自己的最大赢率和相应的赢法序号数组
+     * 最后返回下子的坐标
+     * @type {{}}
+     */
+    function AIChess( excludedCoords ){
+        var AIWinInfo = getMostPossibleWinInfo( _AIWinsScore );
+        var playerWinInfo = getMostPossibleWinInfo( _myWinsScore );
+        var randIdx = null;
+        if( AIWinInfo.max >= playerWinInfo.max ){ //AI的赢率高时，继续进攻
+            randIdx = AIWinInfo.indexs[getRandom(AIWinInfo.indexs.length-1)];
+        }else{
+            randIdx = playerWinInfo.indexs[getRandom(playerWinInfo.indexs.length-1)];
+        }
+        return getRandomWinCoord( randIdx, excludedCoords );
+    }
+
+    /**
+     * 获取当前某一玩家的最大赢率值以及相应的赢法的序号列表
+     * @param winScores
+     * @returns {{max: number, indexs: Array}}
+     */
+    function getMostPossibleWinInfo( winScores ){
+        var max = -1; // 最大赢率
+        var idxs = []; // 相应的赢法序号
+        for( var i = 0; i < winScores.length; i++ ){
+            if( winScores[i] > max ){
+                idxs = [i];
+                max = winScores[i];
+            }else if( winScores[i] == max ){
+                idxs.push( i );
+            }
+        }
+        return {max:max, indexs:idxs};
+    }
+
+    function getRandomWinCoord( index, excludedCoords ){
+        var allCoord = _possibleWins[index];
+        var mx = 0;
+        while( mx < 1000 ){
+            var passCount = 0;
+            var idx = getRandom( allCoord[0].length-1 );
+            for( var i = 0; i < excludedCoords.length; i++ ){
+                if( excludedCoords[i].x!=allCoord[0][idx] ||
+                    excludedCoords[i].y!=allCoord[1][idx] ){
+                    passCount++;
+                }else{
+                    var t = 0;
+                }
+            }
+            if( passCount >= excludedCoords.length ){
+                return {y:allCoord[1][idx],x:allCoord[0][idx]};
+            }
+            mx++;
+        }
+    }
+
+    // 获取从0到max之间的一个随机数 闭区间
+    function getRandom( max ){
+        return Math.round(Math.random()*max);
+    }
+
     function init(opts){
         _defaultOpts.extend(opts);
 
         genAllPossibleWins();
         genWinsScore();
     }
-
 
 
     function gg(arr){
@@ -153,6 +218,7 @@ var Logic = function(){
         addMeWinChance:function(x,y){
             addMeWinChance(x,y);
         },
-        addAIWinChance:addAIWinChance
+        addAIWinChance:addAIWinChance,
+        aiChess:AIChess
     }
 }();
