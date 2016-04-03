@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Gobang</title>
+        <script src="scripts/logic.js"></script>
+        <script src="scripts/ui.js"></script>
+        <script>
+            var _boardWidth = 600;
+            var _borderSize = 15;
+            function init(){
+                utilInit();
+
+                Logic.init({
+                    borderSize:_borderSize
+                });
+                UI.init({
+                    borderLength:_boardWidth,
+                    borderSize:_borderSize,
+                    onClick:function(x,y,user){
+                        if( user == 0 ){
+                            Logic.addMeWinChance(x,y);
+                        }else{
+                            Logic.addAIWinChance(x,y);
+                        }
+                        var hasWin = Logic.checkWin();
+                        if( null != hasWin ){
+                            alert(hasWin+" Win!");
+                            UI.endGame();
+                        }
+                    }
+                });
+            }
+
+            function utilInit(){
+                Object.prototype.extend = function( obj ){
+                    for( var k in obj ){
+                        this[k] = obj[k];
+                    }
+                }
+            }
+        </script>
+    </head>
+    <body onload="init()" style="text-align: center;">
+        <canvas id="board"></canvas>
+    </body>
+</html>
