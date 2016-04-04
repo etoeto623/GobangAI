@@ -45,6 +45,7 @@ var UI = function(){
                 return;
             }
             var chess = getChessPositionByCoord( event.offsetX, event.offsetY );
+
             if( null != chess ){
                 for( var i = 0; i < _usedCoords.length; i++ ){
                     if( chess.x==_usedCoords[i].x && chess.y==_usedCoords[i].y ){
@@ -52,15 +53,17 @@ var UI = function(){
                     }
                 }
 
-                putChess( chess.x, chess.y );
-                _usedCoords.push(chess);
-                _current = _chessSwitch[_current];
+                if( putChess( chess.x, chess.y )){
+                    _usedCoords.push(chess);
+                    _current = _chessSwitch[_current];
+
+                    // 暴露给外部的点击处理接口
+                    if( typeof _defaultOptions.onClick == 'function'){
+                        _defaultOptions.onClick( chess.x, chess.y, _current );
+                    }
+                }
             }
-            // 暴露给外部的点击处理接口
-            if( typeof _defaultOptions.onClick == 'function'){
-                _defaultOptions.onClick( chess.x, chess.y, _current );
-            }
-        }
+        };
         _canvas.onmousemove = function(){
             if( _gameEnded ){
                 return;
@@ -72,10 +75,14 @@ var UI = function(){
                 _canvas.style.cursor = "auto";
                 _clickable = false;
             }
-        }
+        };
     }
 
     function putChess( x, y ){
+        if( x==0 || x==_borderSize+1 ||
+            y==0 || y==_borderSize+1){
+            return false;
+        }
         var point = getCoordByCheesIndex(x, y);
         _ctx.save();
         _ctx.beginPath();
@@ -84,6 +91,7 @@ var UI = function(){
         _ctx.fill();
         _ctx.closePath();
         _ctx.restore();
+        return true;
     }
 
     /**
@@ -153,9 +161,12 @@ var UI = function(){
         endGame:endGame,
         usedCoords:_usedCoords,
         putChess:function( x, y ){
-            putChess( x, y );
-            _usedCoords.push({x:x, y:y});
-            _current = _chessSwitch[_current];
+            if(putChess( x, y )){
+                _usedCoords.push({x:x, y:y});
+                _current = _chessSwitch[_current];
+                return true;
+            }
+            return false;
         }
     }
 }();

@@ -8,11 +8,13 @@
         <script>
             var _boardWidth = 600;
             var _borderSize = 15;
+            var _lineSize = 5;
             function init(){
                 utilInit();
 
                 Logic.init({
-                    borderSize:_borderSize
+                    borderSize:_borderSize,
+                    lineSize:_lineSize
                 });
                 UI.init({
                     borderLength:_boardWidth,
@@ -27,12 +29,13 @@
                         }
 
                         var coord = Logic.aiChess(UI.usedCoords);
-                        UI.putChess( coord.x, coord.y );
-                        Logic.addAIWinChance(coord.x, coord.y);
-                        hasWin = Logic.checkWin();
-                        if( null != hasWin ){
-                            alert(hasWin+" Win!");
-                            UI.endGame();
+                        if( UI.putChess( coord.x, coord.y ) ){
+                            Logic.addAIWinChance(coord.x, coord.y);
+                            hasWin = Logic.checkWin();
+                            if( null != hasWin ){
+                                alert(hasWin+" Win!");
+                                UI.endGame();
+                            }
                         }
                     }
                 });

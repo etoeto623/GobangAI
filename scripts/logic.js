@@ -22,27 +22,30 @@ var Logic = function(){
                 var temp1 = [],temp2 = [];
                 for( var k = 0; k < _defaultOpts.borderSize; k++ ){
                     if( k>j-_defaultOpts.lineSize && k<=j ){
-                        temp1.push(i);
-                        temp2.push(k);
+                        temp1.push(i+1);
+                        temp2.push(k+1);
                     }
                 }
-                result1.push([temp1,temp2]);
-                result2.push([temp2,temp1]);
+                result1.push([temp1,temp2]); //vertical
+                result2.push([temp2,temp1]); //horizontal
             }
         }
 
         // 所有的斜向赢法
-        for( var j = 0; j < result1.length; j+= _defaultOpts.borderSize-_defaultOpts.lineSize+1 ){
-            for( var i = 0; i < _defaultOpts.borderSize-_defaultOpts.lineSize+1; i++ ){
-                var y = result1[j][0][0];
-                var xs = result1[j+i][1];
+        for( var j = 0; j < result1.length; j+= _defaultOpts.borderSize-_defaultOpts.lineSize+1 ){ // each row
+            var y = result2[j][1][0]-1;
+            if( y >= _defaultOpts.borderSize-_defaultOpts.lineSize+1 ){
+                break;
+            }
+            for( var i = 0; i < _defaultOpts.borderSize-_defaultOpts.lineSize+1; i++ ){ // move horizontal
+                var xs = result2[j+i][0];
                 var temp1 = [],temp2 = [],temp3 = [],temp4 = [];
                 for( var k = 0; k < xs.length; k++ ){
                     temp1.push(xs[k]);
-                    temp2.push(y+(_defaultOpts.lineSize-k)-1);
+                    temp2.push(y+(_defaultOpts.lineSize-k));
 
                     temp3.push(xs[k]);
-                    temp4.push(y+k);
+                    temp4.push(y+1+k);
                 }
                 result3.push([temp1,temp2]);
                 result4.push([temp3,temp4]);
@@ -77,6 +80,7 @@ var Logic = function(){
             for( var j = 0; j < a0.length; j++ ){
                 if( a0[j]==x && a1[j]==y ){
                     result.push(i);
+                    break;
                 }
             }
         }
@@ -116,11 +120,19 @@ var Logic = function(){
         var idxs = getAllWinsIndexByCoord(x,y);
         idxs.map(function(i){
             if( who=='ME' ){
-                _myWinsScore[i]++;
+                if( _AIWinsScore[i] > 0 ){
+                    _myWinsScore[i] = -1;
+                }else{
+                    _myWinsScore[i]++;
+                }
                 _AIWinsScore[i] = -1;
             }else if( who=='AI' ){
+                if( _myWinsScore[i] > 0 ){
+                    _AIWinsScore[i] = -1;
+                }else{
+                    _AIWinsScore[i]++;
+                }
                 _myWinsScore[i] = -1;
-                _AIWinsScore[i]++;
             }
         });
     }
@@ -165,10 +177,20 @@ var Logic = function(){
         return {max:max, indexs:idxs};
     }
 
+    /**
+     * 判断某一用户在特定赢法中下一步棋的分值
+     * @param point
+     * @param winArr
+     * @param user
+     */
+    function getScoreOfAPoint( point, winArr, user ){
+        // TODO
+    }
+
     function getRandomWinCoord( index, excludedCoords ){
         var allCoord = _possibleWins[index];
         var mx = 0;
-        while( mx < 1000 ){
+        while( mx < 10000 ){
             var passCount = 0;
             var idx = getRandom( allCoord[0].length-1 );
             for( var i = 0; i < excludedCoords.length; i++ ){
@@ -213,11 +235,9 @@ var Logic = function(){
 
     return {
         init:init,
-        wins:_possibleWins,
+        wins:function(){return _possibleWins},
         checkWin:checkWin,
-        addMeWinChance:function(x,y){
-            addMeWinChance(x,y);
-        },
+        addMeWinChance:addMeWinChance,
         addAIWinChance:addAIWinChance,
         aiChess:AIChess
     }
