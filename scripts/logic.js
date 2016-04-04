@@ -103,6 +103,19 @@ var Logic = function(){
         return null;
     }
 
+    /**
+     * 判断双方是否还有赢的可能
+     */
+    function anyWinChances(){
+        for( var i = 0; i < _AIWinsScore.length; i++ ){
+            if( _AIWinsScore[i] != -1 ||
+                _myWinsScore[i] != -1){
+                return true;
+            }
+        }
+        return false;
+    }
+
     function addMeWinChance( x, y ){
         addWinChance(x,y,"ME");
     }
@@ -120,14 +133,14 @@ var Logic = function(){
         var idxs = getAllWinsIndexByCoord(x,y);
         idxs.map(function(i){
             if( who=='ME' ){
-                if( _AIWinsScore[i] > 0 ){
+                if( _AIWinsScore[i] > 0 || _myWinsScore[i] == -1 ){
                     _myWinsScore[i] = -1;
                 }else{
                     _myWinsScore[i]++;
                 }
                 _AIWinsScore[i] = -1;
             }else if( who=='AI' ){
-                if( _myWinsScore[i] > 0 ){
+                if( _myWinsScore[i] > 0 || _AIWinsScore[i] == -1 ){
                     _AIWinsScore[i] = -1;
                 }else{
                     _AIWinsScore[i]++;
@@ -239,6 +252,7 @@ var Logic = function(){
         checkWin:checkWin,
         addMeWinChance:addMeWinChance,
         addAIWinChance:addAIWinChance,
-        aiChess:AIChess
+        aiChess:AIChess,
+        anyWinChances:anyWinChances
     }
 }();

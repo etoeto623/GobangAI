@@ -27,6 +27,11 @@
                             UI.endGame();
                             return;
                         }
+                        if( !Logic.anyWinChances() ){
+                            alert("和棋!");
+                            UI.endGame();
+                            return;
+                        }
 
                         var coord = Logic.aiChess(UI.usedCoords);
                         if( UI.putChess( coord.x, coord.y ) ){
