@@ -144,12 +144,13 @@ var Logic = function(){
         var idxs = getAllWinsIndexByCoord(x,y);
         _usedChess.push([x,y]);
         idxs.map(function(i){
+            var jamedNum = jamedSituation( _possibleWins[i], who );
             if( who=='ME' ){
                 _myWinsScore[i].coords.push(getPointIndex(x,y,_possibleWins[i]));
                 if( _AIWinsScore[i].score > 0 || _myWinsScore[i].score == -1 ){
                     _myWinsScore[i].score = -1;
                 }else{
-                    _myWinsScore[i].score = getScoreOfAPoint({x:x,y:y},_possibleWins[i],_myWinsScore[i].coords,"ME");
+                    _myWinsScore[i].score = getScoreOfAPoint({x:x,y:y},_possibleWins[i],_myWinsScore[i].coords,jamedNum);
                 }
                 _AIWinsScore[i].score = -1;
             }else if( who=='AI' ){
@@ -157,7 +158,7 @@ var Logic = function(){
                 if( _myWinsScore[i].score > 0 || _AIWinsScore[i].score == -1 ){
                     _AIWinsScore[i].score = -1;
                 }else{
-                    _AIWinsScore[i].score = getScoreOfAPoint({x:x,y:y},_possibleWins[i],_AIWinsScore[i].coords,"AI");
+                    _AIWinsScore[i].score = getScoreOfAPoint({x:x,y:y},_possibleWins[i],_AIWinsScore[i].coords,jamedNum);
                 }
                 _myWinsScore[i].score = -1;
             }
@@ -178,16 +179,15 @@ var Logic = function(){
         var playerWinInfo = getMostPossibleWinInfo( _myWinsScore );
 
         // 判断当前AI下一部棋之后的最大分值
-        var maxNextChess = getRandomWinCoord(AIWinInfo.indexs[getRandom(AIWinInfo.indexs.length-1)],excludedCoords,"AI");
+        var aiMaxNextChess = getRandomWinCoord(AIWinInfo.indexs[getRandom(AIWinInfo.indexs.length-1)],"AI");
+        var meMaxNextChess = getRandomWinCoord(playerWinInfo.indexs[getRandom(playerWinInfo.indexs.length-1)],"ME");
 
         var randIdx = null;
         var user = "ME";
-        if( maxNextChess.score > playerWinInfo.max ){ //AI的赢率高时，继续进攻
-            return maxNextChess.point;
-        }else{
-            randIdx = playerWinInfo.indexs[getRandom(playerWinInfo.indexs.length-1)];
+        if( aiMaxNextChess.score >= meMaxNextChess.score ){ //AI的赢率高时，继续进攻
+            return aiMaxNextChess.point;
         }
-        return getRandomWinCoord( randIdx, excludedCoords, user ).point;
+        return meMaxNextChess.point;
     }
 
     /**
@@ -214,9 +214,9 @@ var Logic = function(){
      * @param point 下棋的点
      * @param winArr  某一个赢法数组
      * @param used 已经下过的点 
-     * @param user 
+     * @param jamedNum
      */
-    function getScoreOfAPoint( point, winArr, used, user ){
+    function getScoreOfAPoint( point, winArr, used, jamedNum ){
         var currentIndex = getPointIndex(point.x, point.y, winArr);
         var usedClone = [];
         for( var i = 0; i < used.length; i++ ){
@@ -230,7 +230,7 @@ var Logic = function(){
         var weight = 2;
         var continueNum = 0;
         if( usedClone.length == _defaultOpts.lineSize ){
-             score = 1000000;   
+             return score = 1000000;
         }else{
             for( var i = 1; i <= _defaultOpts.lineSize; i++ ){
                 if( usedClone.indexOf(i)>-1 ){
@@ -243,21 +243,106 @@ var Logic = function(){
                 }
             }
         }
-        
-        return score;
+
+        return Math.ceil(score/Math.pow(2,jamedNum));
     }
 
-    function getRandomWinCoord( index, excludedCoords, user ){
+    /**
+     * 某种赢法的被阻拦的情况
+     */
+    function jamedSituation( winArr, who ){
+        var start = who=="AI"?0:1;
+        var used = []; //[x,y]
+        for( var i = start; i < _usedChess.length; i+=2 ){
+            used.push( _usedChess[i] );
+        }
+        var endPoints = getLineEndpoints(winArr);
+        var jamed = 0;
+        for( var i = 0; i < endPoints.length; i++ ){
+            var tp = endPoints[i];
+            if( tp.x==-1 || tp.y==-1 ){
+                jamed++;
+            }else{
+                for( var j = 0; j < used.length; j++ ){
+                    if( used[j][0]==tp.x && used[j][1]==tp.y ){
+                        jamed++;
+                        break;
+                    }
+                }
+            }
+        }
+        return jamed;
+    }
+
+    function getLineEndpoints( winArr ){
+        if( winArr[0][0] == winArr[0][1] ){ // 纵向
+            var temp = [].concat(winArr[1]);
+            temp.sort(function(x,y){return x>y;});
+            var e1 = temp[0] == 1 ? -1 : temp[0]-1;
+            var e2 = temp[temp.length-1] == _defaultOpts.borderSize ? -1 : temp[temp.length-1]+1;
+            return [{x:winArr[0][0], y:e1},{x:winArr[0][0], y:e2}];
+        }else if( winArr[1][0] == winArr[1][1] ){ //横向
+            var temp = [].concat(winArr[0]);
+            temp.sort(function(x,y){return x>y;});
+            var e1 = temp[0] == 1 ? -1 : temp[0]-1;
+            var e2 = temp[temp.length-1] == _defaultOpts.borderSize ? -1 : temp[temp.length-1]+1;
+            return [{y:winArr[1][0], x:e1},{y:winArr[1][0], x:e2}];
+        }else if( winArr[0][0]+winArr[1][0] == winArr[0][1]+winArr[1][1] ){ //斜向
+            var temp0 = [].concat(winArr[0]);
+            var temp1 = [].concat(winArr[1]);
+            temp0.sort(function(x,y){return x>y;});
+            temp1.sort(function(x,y){return x<y});
+            var e11,e12,e21,e22;
+            if( temp1[0]==_defaultOpts.borderSize || temp0[0]==1 ){
+                e11 = -1;
+                e12 = -1;
+            }else {
+                e11 = temp0[0]-1;
+                e12 = temp1[0]+1;
+            }
+            if( temp1[temp0.length-1]==1 || temp0[temp0.length-1]==_defaultOpts.borderSize ){
+                e21 = -1;
+                e22 = -1;
+            }else {
+                e21 = temp0[temp0.length-1]+1;
+                e22 = temp1[temp0.length-1]-1;
+            }
+            return [{x:e11,y:e12},{x:e21,y:e22}];
+        }else if(winArr[0][0]-winArr[1][0] == winArr[0][1]-winArr[1][1]){ //反斜向
+            var temp0 = [].concat(winArr[0]);
+            var temp1 = [].concat(winArr[1]);
+            temp0.sort(function(x,y){return x>y;});
+            temp1.sort(function(x,y){return x>y;});
+            var e11,e12,e21,e22;
+            if( temp1[0]==1 || temp0[0]==1 ){
+                e11 = -1;
+                e12 = -1;
+            }else {
+                e11 = temp0[0]-1;
+                e12 = temp1[0]-1;
+            }
+            if( temp1[temp0.length-1]==_defaultOpts.borderSize || temp0[temp0.length-1]==_defaultOpts.borderSize ){
+                e21 = -1;
+                e22 = -1;
+            }else {
+                e21 = temp0[temp0.length-1]+1;
+                e22 = temp1[temp0.length-1]+1;
+            }
+            return [{x:e11,y:e12},{x:e21,y:e22}];
+        }
+    }
+
+    function getRandomWinCoord( index, user ){
         var allCoord = _possibleWins[index];  //赢法座标
         var winArr = user=="AI"?_AIWinsScore:_myWinsScore;
         winArr = winArr[index];
         var maxScore = -1;
         var maxPoint = {};
-        
+        var jamed = jamedSituation(allCoord, user);
         for( var j = 0; j < allCoord[0].length; j++ ){
             var idx = getPointIndex(allCoord[0][j],allCoord[1][j],allCoord);
             if( winArr.coords.indexOf(idx) == -1 && _usedChess.indexOfExt([allCoord[0][j],allCoord[1][j]]) == -1 ){
-                var s = getScoreOfAPoint({x:allCoord[0][j],y:allCoord[1][j]},allCoord,winArr.coords,user);
+                var s = getScoreOfAPoint({x:allCoord[0][j],y:allCoord[1][j]},allCoord,winArr.coords,jamed);
                 if( s > maxScore ){
                     maxScore = s;
                     maxPoint = {x:allCoord[0][j],y:allCoord[1][j]};
