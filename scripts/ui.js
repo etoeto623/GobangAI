@@ -159,7 +159,9 @@ var UI = function(){
             boardInit();
         },
         endGame:endGame,
-        usedCoords:_usedCoords,
+        usedChess:function(){
+            return _usedCoords
+        },
         putChess:function( x, y ){
             if(putChess( x, y )){
                 _usedCoords.push({x:x, y:y});

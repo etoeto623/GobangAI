@@ -33,7 +33,7 @@
                             return;
                         }
 
-                        var coord = Logic.aiChess(UI.usedCoords);
+                        var coord = Logic.aiChess(UI.usedChess());
                         if( UI.putChess( coord.x, coord.y ) ){
                             Logic.addAIWinChance(coord.x, coord.y);
                             hasWin = Logic.checkWin();
@@ -51,6 +51,14 @@
                     for( var k in obj ){
                         this[k] = obj[k];
                     }
+                }
+                Array.prototype.indexOfExt = function( arr ){
+                    for( var i = 0; i < this.length; i++ ){
+                        if( this[i][0] == arr[0] && this[i][1] == arr[1] ){
+                            return i;
+                        }
+                    }
+                    return -1;
                 }
             }
         </script>

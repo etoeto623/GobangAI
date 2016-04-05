@@ -1,7 +1,8 @@
 var Logic = function(){
     var _possibleWins = null;
-    var _myWinsScore = null;
+    var _myWinsScore = null   //{coords:[],score:0} coords:当前连子(序号) score:当前赢率
     var _AIWinsScore = null;
+    var _usedChess = [];
 
     var _defaultOpts = {
         borderSize : 15, //棋盘大小
@@ -62,8 +63,8 @@ var Logic = function(){
         _myWinsScore = [];
         _AIWinsScore = [];
         for( var i = 0; i < _possibleWins.length; i++ ){
-            _myWinsScore.push(0);
-            _AIWinsScore.push(0);
+            _myWinsScore.push({coords:[],score:0});
+            _AIWinsScore.push({coords:[],score:0});
         }
     }
 
@@ -93,10 +94,10 @@ var Logic = function(){
      */
     function checkWin(){
         for( var i = 0; i < _myWinsScore.length; i++ ){
-            if( _myWinsScore[i] == _defaultOpts.lineSize ){
+            if( _myWinsScore[i].coords.length == _defaultOpts.lineSize ){
                 return "ME";
             }
-            if( _AIWinsScore[i] == _defaultOpts.lineSize ){
+            if( _AIWinsScore[i].coords.length == _defaultOpts.lineSize ){
                 return "AI";
             }
         }
@@ -108,8 +109,8 @@ var Logic = function(){
      */
     function anyWinChances(){
         for( var i = 0; i < _AIWinsScore.length; i++ ){
-            if( _AIWinsScore[i] != -1 ||
-                _myWinsScore[i] != -1){
+            if( _AIWinsScore[i].score != -1 ||
+                _myWinsScore[i].score != -1){
                 return true;
             }
         }
@@ -123,6 +124,16 @@ var Logic = function(){
         addWinChance(x,y,"AI");
     }
 
+    // 获取某一点在某种赢法中的序号(begin with 1)
+    function getPointIndex(x,y,winArr){
+        for( var i = 0; i < winArr[0].length; i++ ){
+            if( x==winArr[0][i] && y==winArr[1][i] ){
+                return i+1;
+            }
+        }
+        return -1;
+    }
+
     /**
      * 给用户添加赢率
      * @param x
@@ -131,21 +142,24 @@ var Logic = function(){
      */
     function addWinChance( x, y ,who ){
         var idxs = getAllWinsIndexByCoord(x,y);
+        _usedChess.push({x:x,y:y});
         idxs.map(function(i){
             if( who=='ME' ){
-                if( _AIWinsScore[i] > 0 || _myWinsScore[i] == -1 ){
-                    _myWinsScore[i] = -1;
+                _myWinsScore[i].coords.push(getPointIndex(x,y,_possibleWins[i]));
+                if( _AIWinsScore[i].score > 0 || _myWinsScore[i].score == -1 ){
+                    _myWinsScore[i].score = -1;
                 }else{
-                    _myWinsScore[i]++;
+                    _myWinsScore[i].score = getScoreOfAPoint({x:x,y:y},_possibleWins[i],_myWinsScore[i].coords,"ME");
                 }
-                _AIWinsScore[i] = -1;
+                _AIWinsScore[i].score = -1;
             }else if( who=='AI' ){
-                if( _myWinsScore[i] > 0 || _AIWinsScore[i] == -1 ){
-                    _AIWinsScore[i] = -1;
+                _AIWinsScore[i].coords.push(getPointIndex(x,y,_possibleWins[i]));
+                if( _myWinsScore[i].score > 0 || _AIWinsScore[i].score == -1 ){
+                    _AIWinsScore[i].score = -1;
                 }else{
-                    _AIWinsScore[i]++;
+                    _AIWinsScore[i].score = getScoreOfAPoint({x:x,y:y},_possibleWins[i],_AIWinsScore[i].coords,"AI");
                 }
-                _myWinsScore[i] = -1;
+                _myWinsScore[i].score = -1;
             }
         });
     }
@@ -162,13 +176,20 @@ var Logic = function(){
     function AIChess( excludedCoords ){
         var AIWinInfo = getMostPossibleWinInfo( _AIWinsScore );
         var playerWinInfo = getMostPossibleWinInfo( _myWinsScore );
+
+        // 判断当前AI下一部棋之后的最大分值
+        var maxNextChess = getRandomWinCoord(AIWinInfo.indexs[getRandom(AIWinInfo.indexs.length-1)],excludedCoords,"AI");
+
         var randIdx = null;
-        if( AIWinInfo.max >= playerWinInfo.max ){ //AI的赢率高时，继续进攻
-            randIdx = AIWinInfo.indexs[getRandom(AIWinInfo.indexs.length-1)];
+        var user = "ME";
+        if( maxNextChess.score > playerWinInfo.max ){ //AI的赢率高时，继续进攻
+            // randIdx = AIWinInfo.indexs[getRandom(AIWinInfo.indexs.length-1)];
+            // user = "AI";
+            return maxNextChess.point;
         }else{
             randIdx = playerWinInfo.indexs[getRandom(playerWinInfo.indexs.length-1)];
         }
-        return getRandomWinCoord( randIdx, excludedCoords );
+        return getRandomWinCoord( randIdx, excludedCoords, user ).point;
     }
 
     /**
@@ -180,10 +201,10 @@ var Logic = function(){
         var max = -1; // 最大赢率
         var idxs = []; // 相应的赢法序号
         for( var i = 0; i < winScores.length; i++ ){
-            if( winScores[i] > max ){
+            if( winScores[i].score > max ){
                 idxs = [i];
-                max = winScores[i];
-            }else if( winScores[i] == max ){
+                max = winScores[i].score;
+            }else if( winScores[i].score == max ){
                 idxs.push( i );
             }
         }
@@ -192,33 +213,60 @@ var Logic = function(){
 
     /**
      * 判断某一用户在特定赢法中下一步棋的分值
-     * @param point
-     * @param winArr
-     * @param user
+     * @param point 下棋的点
+     * @param winArr  某一个赢法数组
+     * @param used 已经下过的点 
+     * @param user 
      */
-    function getScoreOfAPoint( point, winArr, user ){
-        // TODO
-    }
-
-    function getRandomWinCoord( index, excludedCoords ){
-        var allCoord = _possibleWins[index];
-        var mx = 0;
-        while( mx < 10000 ){
-            var passCount = 0;
-            var idx = getRandom( allCoord[0].length-1 );
-            for( var i = 0; i < excludedCoords.length; i++ ){
-                if( excludedCoords[i].x!=allCoord[0][idx] ||
-                    excludedCoords[i].y!=allCoord[1][idx] ){
-                    passCount++;
+    function getScoreOfAPoint( point, winArr, used, user ){
+        var currentIndex = getPointIndex(point.x, point.y, winArr);
+        var usedClone = [];
+        for( var i = 0; i < used.length; i++ ){
+            usedClone.push(used[i]);
+        }
+        if( usedClone.indexOf(currentIndex)==-1 ){
+            usedClone.push(currentIndex);    
+        }
+        
+        var score = 0;
+        var weight = 2;
+        var continueNum = 0;
+        if( usedClone.length == _defaultOpts.lineSize ){
+             score = 1000000;   
+        }else{
+            for( var i = 1; i <= _defaultOpts.lineSize; i++ ){
+                if( usedClone.indexOf(i)>-1 ){
+                    continueNum++;
+                    weight *= continueNum;
+                    score += weight;
                 }else{
-                    var t = 0;
+                    continueNum = 0;
+                    weight = 2;
                 }
             }
-            if( passCount >= excludedCoords.length ){
-                return {y:allCoord[1][idx],x:allCoord[0][idx]};
-            }
-            mx++;
         }
+        
+        return score;
+    }
+
+    function getRandomWinCoord( index, excludedCoords, user ){
+        var allCoord = _possibleWins[index];  //赢法座标
+        var winArr = user=="AI"?_AIWinsScore:_myWinsScore;
+        winArr = winArr[index];
+        var maxScore = -1;
+        var maxPoint = {};
+        
+        for( var j = 0; j < allCoord[0].length; j++ ){
+            var idx = getPointIndex(allCoord[0][j],allCoord[1][j],allCoord);
+            if( winArr.coords.indexOf(idx) == -1 && excludedCoords.indexOfExt([allCoord[0][j],allCoord[1][j]]) == -1 ){
+                var s = getScoreOfAPoint({x:allCoord[0][j],y:allCoord[1][j]},allCoord,winArr.coords,user);
+                if( s > maxScore ){
+                    maxScore = s;
+                    maxPoint = {x:allCoord[0][j],y:allCoord[1][j]};
+                }
+            }
+        }
+        return {point:maxPoint,score:maxScore};
     }
 
     // 获取从0到max之间的一个随机数 闭区间
