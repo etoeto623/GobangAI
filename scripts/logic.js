@@ -142,7 +142,7 @@ var Logic = function(){
      */
     function addWinChance( x, y ,who ){
         var idxs = getAllWinsIndexByCoord(x,y);
-        _usedChess.push({x:x,y:y});
+        _usedChess.push([x,y]);
         idxs.map(function(i){
             if( who=='ME' ){
                 _myWinsScore[i].coords.push(getPointIndex(x,y,_possibleWins[i]));
@@ -183,8 +183,6 @@ var Logic = function(){
         var randIdx = null;
         var user = "ME";
         if( maxNextChess.score > playerWinInfo.max ){ //AI的赢率高时，继续进攻
-            // randIdx = AIWinInfo.indexs[getRandom(AIWinInfo.indexs.length-1)];
-            // user = "AI";
             return maxNextChess.point;
         }else{
             randIdx = playerWinInfo.indexs[getRandom(playerWinInfo.indexs.length-1)];
@@ -258,7 +256,7 @@ var Logic = function(){
         
         for( var j = 0; j < allCoord[0].length; j++ ){
             var idx = getPointIndex(allCoord[0][j],allCoord[1][j],allCoord);
-            if( winArr.coords.indexOf(idx) == -1 && excludedCoords.indexOfExt([allCoord[0][j],allCoord[1][j]]) == -1 ){
+            if( winArr.coords.indexOf(idx) == -1 && _usedChess.indexOfExt([allCoord[0][j],allCoord[1][j]]) == -1 ){
                 var s = getScoreOfAPoint({x:allCoord[0][j],y:allCoord[1][j]},allCoord,winArr.coords,user);
                 if( s > maxScore ){
                     maxScore = s;
@@ -279,19 +277,6 @@ var Logic = function(){
 
         genAllPossibleWins();
         genWinsScore();
-    }
-
-
-    function gg(arr){
-        for( var i = 0; i < arr.length; i++ ){
-            var a1 = arr[i][0];
-            var a2 = arr[i][1];
-            var str = "";
-            for( var j = 0; j < a1.length; j++ ){
-                str+="  "+a1[j]+","+a2[j];
-            }
-            console.log(str);
-        }
     }
 
     return {
